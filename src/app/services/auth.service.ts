@@ -36,6 +36,13 @@ export class AuthService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly cfg = environment.cognito;
 
+  /**
+   * Where Cognito sends the browser back to: the site's own address (e.g. http://localhost:4200
+   * or https://ticketmaster-e8ff2.web.app), so one build works everywhere. Each address must be
+   * listed in the app client's callback URLs (and sign-out URLs if useSignOutUrl is on).
+   */
+  private readonly redirectUri = this.isBrowser ? window.location.origin : environment.cognito.redirectUri;
+
   private readonly session = signal<StoredSession | null>(this.loadSession());
 
   readonly isLoggedIn = computed(() => {
@@ -86,7 +93,7 @@ export class AuthService {
         grant_type: 'authorization_code',
         client_id: this.cfg.clientId,
         code,
-        redirect_uri: this.cfg.redirectUri,
+        redirect_uri: this.redirectUri,
         code_verifier: verifier,
       },
     });
@@ -109,7 +116,7 @@ export class AuthService {
    * Clears local tokens and ends the Cognito Hosted UI session, so the next sign-in asks for
    * credentials again instead of silently reusing the old session.
    *
-   * - useSignOutUrl = true: Cognito returns to `logoutUri` (SupportFlow's login page). Requires
+   * - useSignOutUrl = true: Cognito returns to the site's address (SupportFlow's login page). Requires
    *   that URL in the app client's "Allowed sign-out URLs", otherwise Cognito shows "Invalid request".
    * - useSignOutUrl = false: Cognito goes straight to its sign-in page and, after signing in,
    *   back to the app. Only needs the callback URL, which is already registered.
@@ -121,7 +128,7 @@ export class AuthService {
 
     if (this.cfg.useSignOutUrl) {
       const params = new HttpParams({
-        fromObject: { client_id: this.cfg.clientId, logout_uri: this.cfg.logoutUri },
+        fromObject: { client_id: this.cfg.clientId, logout_uri: this.redirectUri },
       });
       window.location.assign(`${this.cfg.domain}/logout?${params.toString()}`);
       return;
@@ -146,7 +153,7 @@ export class AuthService {
       fromObject: {
         response_type: 'code',
         client_id: this.cfg.clientId,
-        redirect_uri: this.cfg.redirectUri,
+        redirect_uri: this.redirectUri,
         scope: this.cfg.scopes,
         state,
         code_challenge_method: 'S256',
