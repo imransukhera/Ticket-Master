@@ -1,0 +1,109 @@
+<a class="sf-back" [routerLink]="isEdit ? ['/tickets', ticketId] : ['/tickets']">
+  ← {{ isEdit ? 'Back to ticket' : 'Back to tickets' }}
+</a>
+
+<div class="sf-page-head">
+  <div>
+    <h1>{{ isEdit ? 'Edit ticket' : 'New ticket' }}</h1>
+    <p>{{ isEdit ? ticketId : 'Log a new customer request.' }}</p>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true"></div>
+} @else if (loadError()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ loadErrorKind() === 'notFound' ? 'Ticket not found' : "Couldn't load the ticket" }}</h2>
+    <p>{{ loadError() }}</p>
+    <div class="sf-actions center">
+      <a class="sf-btn" routerLink="/tickets">Back to tickets</a>
+      @if (isRetryable(loadErrorKind())) {
+        <button type="button" class="sf-btn primary" (click)="loadTicket()">Try again</button>
+      }
+    </div>
+  </div>
+} @else {
+  <form class="sf-panel form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (saveError()) {
+      <p class="sf-alert" role="alert">{{ saveError() }}</p>
+    }
+
+    <label class="sf-field full">
+      <span>Title <em class="req" aria-hidden="true">*</em></span>
+      <input class="sf-input" formControlName="title" [maxlength]="maxTitle" placeholder="Short summary of the issue" />
+      @if (invalid('title')) {
+        <small class="sf-error-text">Enter a title.</small>
+      }
+    </label>
+
+    <label class="sf-field">
+      <span>Customer <em class="req" aria-hidden="true">*</em></span>
+      @if (useCustomerPicker()) {
+        <select class="sf-input" formControlName="customerId">
+          <option value="" disabled>Select a customer…</option>
+          @for (c of sortedCustomers(); track c.customerId) {
+            <option [value]="c.customerId">{{ c.name }} · {{ c.email }}</option>
+          }
+          @if (form.controls.customerId.value && !isKnownCustomer(form.controls.customerId.value)) {
+            <option [value]="form.controls.customerId.value">{{ form.controls.customerId.value }}</option>
+          }
+        </select>
+      } @else {
+        <input class="sf-input" formControlName="customerId" placeholder="Customer ID" />
+        @if (customersLoaded()) {
+          <small>No customers yet. <a routerLink="/customers/new">Add a customer</a> first.</small>
+        }
+      }
+      @if (invalid('customerId')) {
+        <small class="sf-error-text">Choose a customer.</small>
+      }
+    </label>
+
+    <label class="sf-field">
+      <span>Assign to</span>
+      <select class="sf-input" formControlName="assignedTo">
+        <option value="">Unassigned</option>
+        @for (u of userList(); track u.userId) {
+          <option [value]="u.userId">{{ u.name || u.email }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="sf-field">
+      <span>Priority</span>
+      <select class="sf-input" formControlName="priority">
+        @for (p of priorities; track p) {
+          <option [value]="p">{{ humanize(p) }}</option>
+        }
+      </select>
+    </label>
+
+    @if (isEdit) {
+      <label class="sf-field">
+        <span>Status</span>
+        <select class="sf-input" formControlName="status">
+          @for (s of statuses; track s) {
+            <option [value]="s">{{ humanize(s) }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    <label class="sf-field full">
+      <span>Description <em class="req" aria-hidden="true">*</em></span>
+      <textarea class="sf-input" formControlName="description" rows="6" [maxlength]="maxDescription" placeholder="What does the customer need?"></textarea>
+      @if (invalid('description')) {
+        <small class="sf-error-text">Describe the issue.</small>
+      } @else if (form.controls.description.value.length > maxDescription - 500) {
+        <small>{{ form.controls.description.value.length }} / {{ maxDescription }}</small>
+      }
+    </label>
+
+    <div class="sf-actions full">
+      <a class="sf-btn" [routerLink]="isEdit ? ['/tickets', ticketId] : ['/tickets']">Cancel</a>
+      <button type="submit" class="sf-btn primary" [disabled]="saving() || form.invalid || (isEdit && form.pristine)">
+        {{ saving() ? 'Saving…' : isEdit ? 'Save changes' : 'Create ticket' }}
+      </button>
+    </div>
+  </form>
+}

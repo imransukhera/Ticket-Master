@@ -1,0 +1,105 @@
+<div class="sf-page-head">
+  <div>
+    <h1>Tickets</h1>
+    <p>Track, assign and resolve customer requests.</p>
+  </div>
+  <a class="sf-btn primary" routerLink="/tickets/new">+ New ticket</a>
+</div>
+
+<section class="filters sf-panel" aria-label="Filter tickets">
+  <label class="search">
+    <span class="visually-hidden">Search</span>
+    <input
+      class="sf-input"
+      type="search"
+      placeholder="Search by title, ID, description or customer…"
+      [value]="search()"
+      (input)="search.set(value($event))"
+    />
+  </label>
+
+  <select class="sf-input" aria-label="Status" (change)="status.set(value($event))">
+    <option value="" [selected]="!status()">All statuses</option>
+    @for (s of statuses; track s) {
+      <option [value]="s" [selected]="status() === s">{{ humanize(s) }}</option>
+    }
+  </select>
+
+  <select class="sf-input" aria-label="Priority" (change)="priority.set(value($event))">
+    <option value="" [selected]="!priority()">All priorities</option>
+    @for (p of priorities; track p) {
+      <option [value]="p" [selected]="priority() === p">{{ humanize(p) }}</option>
+    }
+  </select>
+
+  <select class="sf-input" aria-label="Assignee" (change)="assignee.set(value($event))">
+    <option value="" [selected]="!assignee()">All assignees</option>
+    <option [value]="unassigned" [selected]="assignee() === unassigned">Unassigned</option>
+    @for (u of userList(); track u.userId) {
+      <option [value]="u.userId" [selected]="assignee() === u.userId">{{ u.name || u.email }}</option>
+    }
+  </select>
+
+  @if (hasFilters()) {
+    <button type="button" class="sf-btn" (click)="clearFilters()">Clear</button>
+  }
+</section>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true" aria-label="Loading tickets"></div>
+} @else if (error()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ errorKind() === 'forbidden' ? 'No access' : "Couldn't load tickets" }}</h2>
+    <p>{{ error() }}</p>
+    @if (isRetryable(errorKind())) {
+      <button type="button" class="sf-btn primary" (click)="load()">Try again</button>
+    }
+  </div>
+} @else if (!all().length) {
+  <div class="sf-state">
+    <h2>No tickets yet</h2>
+    <p>Create the first ticket to start tracking customer requests.</p>
+    <a class="sf-btn primary" routerLink="/tickets/new">+ New ticket</a>
+  </div>
+} @else if (!filtered().length) {
+  <div class="sf-state">
+    <h2>No matching tickets</h2>
+    <p>Try a different search or clear the filters.</p>
+    <button type="button" class="sf-btn" (click)="clearFilters()">Clear filters</button>
+  </div>
+} @else {
+  <p class="count sf-muted">{{ filtered().length }} of {{ all().length }} tickets</p>
+  <div class="sf-panel table-panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Status</th>
+          <th>Priority</th>
+          <th class="hide-md">Assigned to</th>
+          <th class="hide-md">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (t of filtered(); track t.ticketId) {
+          <tr (click)="open(t)">
+            <td>
+              <a class="title" [routerLink]="['/tickets', t.ticketId]" (click)="$event.stopPropagation()">{{ t.title }}</a>
+              <div class="meta">{{ t.ticketId }}</div>
+            </td>
+            <td><span class="sf-pill" [class]="toneClass(t.status)">{{ humanize(t.status) }}</span></td>
+            <td><span class="sf-pill" [class]="toneClass(t.priority)">{{ humanize(t.priority) }}</span></td>
+            <td class="hide-md">
+              @if (userName(t.assignedTo); as name) {
+                {{ name }}
+              } @else {
+                <span class="sf-muted">Unassigned</span>
+              }
+            </td>
+            <td class="hide-md nowrap">{{ formatDate(t.createdAt) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

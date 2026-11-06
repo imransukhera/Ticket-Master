@@ -1,0 +1,36 @@
+.form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 720px;
+  padding: 24px;
+
+  > .sf-alert,
+  .full {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+}
+
+.optional {
+  margin-left: 4px;
+  color: var(--sf-muted);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.loading {
+  height: 260px;
+  max-width: 720px;
+}
+
+.req {
+  color: var(--sf-critical);
+  font-style: normal;
+}
+
+.center { justify-content: center; }

@@ -1,0 +1,93 @@
+<div class="sf-page-head">
+  <div>
+    <h1>Users</h1>
+    <p>Admins and agents in your SupportFlow workspace.</p>
+  </div>
+  <a class="sf-btn primary" routerLink="/users/invite">+ Invite user</a>
+</div>
+
+<section class="filters sf-panel" aria-label="Filter users">
+  <input
+    class="sf-input search"
+    type="search"
+    aria-label="Search users"
+    placeholder="Search by name or email…"
+    [value]="search()"
+    (input)="search.set(value($event))"
+  />
+
+  <select class="sf-input" aria-label="Role" (change)="role.set(value($event))">
+    <option value="" [selected]="!role()">All roles</option>
+    @for (r of roles; track r) {
+      <option [value]="r" [selected]="role() === r">{{ humanize(r) }}</option>
+    }
+  </select>
+
+  <select class="sf-input" aria-label="Status" (change)="status.set(value($event))">
+    <option value="" [selected]="!status()">All statuses</option>
+    @for (s of statuses; track s) {
+      <option [value]="s" [selected]="status() === s">{{ humanize(s) }}</option>
+    }
+  </select>
+
+  @if (hasFilters()) {
+    <button type="button" class="sf-btn" (click)="clearFilters()">Clear</button>
+  }
+</section>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true" aria-label="Loading users"></div>
+} @else if (error()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ errorKind() === 'forbidden' ? 'Admins only' : "Couldn't load users" }}</h2>
+    <p>{{ error() }}</p>
+    @if (isRetryable(errorKind())) {
+      <button type="button" class="sf-btn primary" (click)="load()">Try again</button>
+    }
+  </div>
+} @else if (!all().length) {
+  <div class="sf-state">
+    <h2>No users yet</h2>
+    <p>Invite admins and agents to help handle tickets.</p>
+    <a class="sf-btn primary" routerLink="/users/invite">+ Invite user</a>
+  </div>
+} @else if (!filtered().length) {
+  <div class="sf-state">
+    <h2>No matching users</h2>
+    <p>Try a different search or clear the filters.</p>
+    <button type="button" class="sf-btn" (click)="clearFilters()">Clear filters</button>
+  </div>
+} @else {
+  <p class="count sf-muted">{{ filtered().length }} of {{ all().length }} users</p>
+  <div class="sf-panel table-panel">
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th class="hide-md">Added</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of filtered(); track u.userId) {
+          <tr (click)="open(u)">
+            <td>
+              <div class="who">
+                <span class="avatar" aria-hidden="true">{{ initials(u) }}</span>
+                <div class="who-text">
+                  <a class="name" [routerLink]="['/users', u.userId]" (click)="$event.stopPropagation()">{{ u.name || u.email }}</a>
+                  @if (isMe(u)) { <span class="you">You</span> }
+                  <div class="meta">{{ u.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="sf-pill" [class]="toneClass(u.role)">{{ humanize(u.role) }}</span></td>
+            <td><span class="sf-pill" [class]="toneClass(u.status)">{{ humanize(u.status) }}</span></td>
+            <td class="hide-md nowrap">{{ formatDate(u.createdAt) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

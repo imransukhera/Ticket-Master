@@ -1,0 +1,151 @@
+<a class="sf-back" routerLink="/users">← Back to users</a>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true" aria-label="Loading user"></div>
+} @else if (error()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ errorKind() === 'forbidden' ? 'Admins only' : errorKind() === 'notFound' ? 'User not found' : "Couldn't load the user" }}</h2>
+    <p>{{ error() }}</p>
+    <div class="sf-actions center">
+      <a class="sf-btn" routerLink="/users">Back to users</a>
+      @if (isRetryable(errorKind())) {
+        <button type="button" class="sf-btn primary" (click)="loadUser()">Try again</button>
+      }
+    </div>
+  </div>
+} @else if (user(); as u) {
+  <div class="sf-page-head">
+    <div class="who">
+      <span class="avatar" aria-hidden="true">{{ initials(u) }}</span>
+      <div class="who-text">
+        <h1>{{ u.name || u.email }} @if (isMe()) { <span class="you">You</span> }</h1>
+        <div class="badges">
+          <span class="sf-pill" [class]="toneClass(u.role)">{{ humanize(u.role) }}</span>
+          <span class="sf-pill" [class]="toneClass(u.status)">{{ humanize(u.status) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="side">
+      <section class="sf-panel">
+        <h2>Details</h2>
+        <dl class="details">
+          <dt>Name</dt>
+          <dd>{{ u.name || '—' }}</dd>
+          <dt>Email</dt>
+          <dd><a [href]="'mailto:' + u.email">{{ u.email }}</a></dd>
+          <dt>User ID</dt>
+          <dd class="mono">{{ u.userId }}</dd>
+          <dt>Added</dt>
+          <dd>{{ formatDateTime(u.createdAt) }}</dd>
+          <dt>Last updated</dt>
+          <dd>{{ formatDateTime(u.updatedAt) }}</dd>
+        </dl>
+      </section>
+
+      <section class="sf-panel">
+        <div class="panel-head">
+          <h2>Access</h2>
+          @if (!editing()) {
+            <button type="button" class="sf-btn" (click)="startEdit()">Edit</button>
+          }
+        </div>
+
+        @if (saved() && !editing()) {
+          <p class="note ok" role="status">Changes saved.</p>
+        }
+
+        @if (editing()) {
+          @if (saveError()) {
+            <p class="sf-alert" [class.forbidden]="saveForbidden()" role="alert">{{ saveError() }}</p>
+          }
+          <label class="sf-field">
+            <span>Role</span>
+            <select class="sf-input" [disabled]="saving()" (change)="draftRole.set($any(selectValue($event)))">
+              @for (r of roles; track r) {
+                <option [value]="r" [selected]="draftRole() === r">{{ humanize(r) }}</option>
+              }
+            </select>
+          </label>
+          <label class="sf-field">
+            <span>Status</span>
+            <select class="sf-input" [disabled]="saving()" (change)="draftStatus.set($any(selectValue($event)))">
+              @for (s of statuses; track s) {
+                <option [value]="s" [selected]="draftStatus() === s">{{ humanize(s) }}</option>
+              }
+            </select>
+          </label>
+          @if (isMe() && (draftRole() !== u.role || draftStatus() !== u.status)) {
+            <p class="note warn">You're changing your own access. You may lose admin features after saving.</p>
+          }
+          <div class="sf-actions">
+            <button type="button" class="sf-btn" [disabled]="saving()" (click)="cancelEdit()">Cancel</button>
+            <button
+              type="button"
+              class="sf-btn primary"
+              [disabled]="saving() || (draftRole() === u.role && draftStatus() === u.status)"
+              (click)="save()"
+            >
+              {{ saving() ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
+        } @else {
+          <dl class="details">
+            <dt>Role</dt>
+            <dd><span class="sf-pill" [class]="toneClass(u.role)">{{ humanize(u.role) }}</span></dd>
+            <dt>Status</dt>
+            <dd><span class="sf-pill" [class]="toneClass(u.status)">{{ humanize(u.status) }}</span></dd>
+          </dl>
+        }
+      </section>
+    </div>
+
+    <section class="sf-panel">
+      <h2>History</h2>
+      @if (auditLoading()) {
+        <div class="sf-skeleton block"></div>
+      } @else if (auditError()) {
+        <p class="sf-alert">
+          {{ auditError() }}
+          <button type="button" class="link" (click)="loadAudit()">Retry</button>
+        </p>
+      } @else if (!audit().length) {
+        <p class="empty">No history yet.</p>
+      } @else {
+        <ol class="sf-timeline">
+          @for (a of sortedAudit(); track a.auditId || $index) {
+            <li [class]="'ev-' + eventKind(a.action)">
+              <div class="ev-head">
+                <strong>{{ eventLabel(a.action) }}</strong>
+                <span class="ev-sub">{{ formatDateTime(a.createdAt) }}</span>
+              </div>
+              @if (a.performedBy) {
+                <div class="ev-sub">by {{ userName(a.performedBy) }}</div>
+              }
+              @if (a.changes.length) {
+                <dl class="changes">
+                  @for (ch of a.changes; track ch.field) {
+                    <dt>{{ humanize(ch.field) }}</dt>
+                    <dd>
+                      @if (ch.oldValue !== undefined && ch.newValue !== undefined) {
+                        <span class="old">{{ formatValue(ch.field, ch.oldValue) }}</span>
+                        <span class="arrow" aria-label="changed to">→</span>
+                        <span class="new">{{ formatValue(ch.field, ch.newValue) }}</span>
+                      } @else if (ch.newValue !== undefined) {
+                        <span class="new">{{ formatValue(ch.field, ch.newValue) }}</span>
+                      } @else {
+                        <span class="old">{{ formatValue(ch.field, ch.oldValue) }}</span>
+                      }
+                    </dd>
+                  }
+                </dl>
+              }
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  </div>
+}

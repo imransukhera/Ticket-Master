@@ -1,0 +1,10 @@
+<div class="shell">
+  <app-sidebar [open]="menuOpen()" (closed)="menuOpen.set(false)" />
+
+  <div class="main">
+    <app-navbar [menuOpen]="menuOpen()" (menuToggle)="menuOpen.set(!menuOpen())" />
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

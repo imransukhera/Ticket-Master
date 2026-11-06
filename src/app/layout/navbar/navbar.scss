@@ -1,0 +1,92 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 24px;
+  background: var(--sf-surface);
+  border-bottom: 1px solid var(--sf-border);
+
+  @media (max-width: 640px) {
+    padding: 0 16px;
+  }
+}
+
+.title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.menu {
+  display: none;
+  padding: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sf-text);
+  cursor: pointer;
+
+  svg {
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  @media (max-width: 900px) {
+    display: block;
+  }
+}
+
+.user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sf-primary-soft);
+  color: var(--sf-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.email {
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.signout {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 1px solid var(--sf-border);
+  border-radius: 8px;
+  background: var(--sf-surface);
+  color: var(--sf-text);
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sf-bg);
+  }
+}

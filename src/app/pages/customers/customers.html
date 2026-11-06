@@ -1,0 +1,77 @@
+<div class="sf-page-head">
+  <div>
+    <h1>Customers</h1>
+    <p>The people and organisations you support.</p>
+  </div>
+  <a class="sf-btn primary" routerLink="/customers/new">+ New customer</a>
+</div>
+
+<section class="filters sf-panel" aria-label="Search customers">
+  <input
+    class="sf-input"
+    type="search"
+    aria-label="Search customers"
+    placeholder="Search by name, email or phone…"
+    [value]="search()"
+    (input)="search.set(value($event))"
+  />
+  @if (search()) {
+    <button type="button" class="sf-btn" (click)="search.set('')">Clear</button>
+  }
+</section>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true" aria-label="Loading customers"></div>
+} @else if (error()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ errorKind() === 'forbidden' ? 'No access' : "Couldn't load customers" }}</h2>
+    <p>{{ error() }}</p>
+    @if (isRetryable(errorKind())) {
+      <button type="button" class="sf-btn primary" (click)="load()">Try again</button>
+    }
+  </div>
+} @else if (!all().length) {
+  <div class="sf-state">
+    <h2>No customers yet</h2>
+    <p>Add your first customer so you can link tickets to them.</p>
+    <a class="sf-btn primary" routerLink="/customers/new">+ New customer</a>
+  </div>
+} @else if (!filtered().length) {
+  <div class="sf-state">
+    <h2>No matching customers</h2>
+    <p>No customer matches “{{ search() }}”.</p>
+    <button type="button" class="sf-btn" (click)="search.set('')">Clear search</button>
+  </div>
+} @else {
+  <p class="count sf-muted">{{ filtered().length }} of {{ all().length }} customers</p>
+  <div class="sf-panel table-panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="hide-sm">Email</th>
+          <th class="hide-md">Phone</th>
+          <th class="hide-md">Added</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of filtered(); track c.customerId) {
+          <tr (click)="open(c)">
+            <td>
+              <div class="who">
+                <span class="avatar" aria-hidden="true">{{ initials(c.name) }}</span>
+                <div class="who-text">
+                  <a class="name" [routerLink]="['/customers', c.customerId]" (click)="$event.stopPropagation()">{{ c.name }}</a>
+                  <div class="meta show-sm">{{ c.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="hide-sm">{{ c.email }}</td>
+            <td class="hide-md nowrap">{{ c.phone || '—' }}</td>
+            <td class="hide-md nowrap">{{ formatDate(c.createdAt) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

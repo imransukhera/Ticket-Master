@@ -1,0 +1,205 @@
+<a class="sf-back" routerLink="/tickets">← Back to tickets</a>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true" aria-label="Loading ticket"></div>
+} @else if (error()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ errorKind() === 'notFound' ? 'Ticket not found' : errorKind() === 'forbidden' ? 'No access' : "Couldn't load the ticket" }}</h2>
+    <p>{{ error() }}</p>
+    <div class="sf-actions center">
+      <a class="sf-btn" routerLink="/tickets">Back to tickets</a>
+      @if (isRetryable(errorKind())) {
+        <button type="button" class="sf-btn primary" (click)="loadTicket()">Try again</button>
+      }
+    </div>
+  </div>
+} @else if (ticket(); as t) {
+  <div class="sf-page-head">
+    <div class="head-text">
+      <h1>{{ t.title }}</h1>
+      <div class="badges">
+        <span class="sf-muted id">{{ t.ticketId }}</span>
+        <span class="sf-pill" [class]="toneClass(t.status)">{{ humanize(t.status) }}</span>
+        <span class="sf-pill" [class]="toneClass(t.priority)">{{ humanize(t.priority) }}</span>
+      </div>
+    </div>
+    <div class="sf-actions">
+      <a class="sf-btn" [routerLink]="['/tickets', t.ticketId, 'edit']">Edit</a>
+      <button type="button" class="sf-btn danger" (click)="confirmingDelete.set(true)">Delete</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="main">
+      <section class="sf-panel">
+        <h2>Description</h2>
+        <p class="description">{{ t.description || 'No description provided.' }}</p>
+      </section>
+
+      <section class="sf-panel">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" [class.active]="tab() === 'comments'" [attr.aria-selected]="tab() === 'comments'" (click)="tab.set('comments')">
+            Comments & notes
+            @if (comments().length) { <span class="tab-count">{{ comments().length }}</span> }
+          </button>
+          <button type="button" role="tab" [class.active]="tab() === 'history'" [attr.aria-selected]="tab() === 'history'" (click)="tab.set('history')">
+            History
+          </button>
+        </div>
+
+        @if (tab() === 'comments') {
+          @if (commentsLoading()) {
+            <div class="sf-skeleton block"></div>
+          } @else if (commentsError()) {
+            <p class="sf-alert">{{ commentsError() }} <button type="button" class="link" (click)="loadComments()">Retry</button></p>
+          } @else if (!comments().length) {
+            <p class="empty">No comments yet.</p>
+          } @else {
+            <ul class="thread">
+              @for (c of sortedComments(); track c.commentId || $index) {
+                <li class="comment" [class.internal]="c.type === 'INTERNAL_NOTE'">
+                  <div class="comment-head">
+                    <strong>{{ userName(c.createdBy) }}</strong>
+                    @if (c.type === 'INTERNAL_NOTE') {
+                      <span class="sf-pill tone-waiting">Internal note</span>
+                    }
+                    <span class="sf-muted when">{{ formatDateTime(c.createdAt) }}</span>
+                  </div>
+                  <p>{{ c.message }}</p>
+                </li>
+              }
+            </ul>
+          }
+
+          <form class="composer" [class.internal]="commentType() === 'INTERNAL_NOTE'" (submit)="$event.preventDefault(); postComment()">
+            <div class="type-toggle" role="radiogroup" aria-label="Comment type">
+              <button type="button" role="radio" [class.active]="commentType() === 'PUBLIC_COMMENT'" [attr.aria-checked]="commentType() === 'PUBLIC_COMMENT'" (click)="commentType.set('PUBLIC_COMMENT')">Public comment</button>
+              <button type="button" role="radio" [class.active]="commentType() === 'INTERNAL_NOTE'" [attr.aria-checked]="commentType() === 'INTERNAL_NOTE'" (click)="commentType.set('INTERNAL_NOTE')">Internal note</button>
+            </div>
+            <textarea
+              class="sf-input"
+              rows="3"
+              aria-label="Comment"
+              [attr.maxlength]="maxComment"
+              [placeholder]="commentType() === 'INTERNAL_NOTE' ? 'Add a note only your team can see…' : 'Write a reply the customer can see…'"
+              [value]="commentText()"
+              (input)="commentText.set(inputValue($event))"
+            ></textarea>
+            @if (postError()) {
+              <p class="sf-alert">{{ postError() }}</p>
+            }
+            <div class="sf-actions">
+              <button type="submit" class="sf-btn primary" [disabled]="posting() || !commentText().trim()">
+                {{ posting() ? 'Posting…' : commentType() === 'INTERNAL_NOTE' ? 'Add note' : 'Post comment' }}
+              </button>
+            </div>
+          </form>
+        } @else {
+          @if (auditLoading()) {
+            <div class="sf-skeleton block"></div>
+          } @else if (auditError()) {
+            <p class="sf-alert">{{ auditError() }} <button type="button" class="link" (click)="loadAudit()">Retry</button></p>
+          } @else if (!audit().length) {
+            <p class="empty">No history yet.</p>
+          } @else {
+            <ol class="timeline">
+              @for (a of sortedAudit(); track a.auditId || $index) {
+                <li>
+                  <div class="comment-head">
+                    <strong>{{ humanize(a.action) }}</strong>
+                    <span class="sf-muted when">{{ formatDateTime(a.createdAt) }}</span>
+                  </div>
+                  @for (ch of a.changes; track ch.field) {
+                    <div class="change">
+                      <span class="sf-muted">{{ humanize(ch.field) }}:</span>
+                      @if (ch.oldValue !== undefined) { <s>{{ formatValue(ch.field, ch.oldValue) }}</s> → }
+                      <span>{{ formatValue(ch.field, ch.newValue) }}</span>
+                    </div>
+                  }
+                  @if (a.performedBy) {
+                    <div class="sf-muted by">by {{ userName(a.performedBy) }}</div>
+                  }
+                </li>
+              }
+            </ol>
+          }
+        }
+      </section>
+    </div>
+
+    <aside class="side">
+      <section class="sf-panel">
+        <h2>Properties</h2>
+        @if (updateError()) {
+          <p class="sf-alert" role="alert">{{ updateError() }}</p>
+        }
+
+        <label class="sf-field">
+          <span>Status @if (updating() === 'status') { <em class="saving">Saving…</em> }</span>
+          <select class="sf-input" [disabled]="!!updating()" (change)="quickUpdate('status', $event)">
+            @for (s of statuses; track s) {
+              <option [value]="s" [selected]="t.status === s">{{ humanize(s) }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="sf-field">
+          <span>Priority @if (updating() === 'priority') { <em class="saving">Saving…</em> }</span>
+          <select class="sf-input" [disabled]="!!updating()" (change)="quickUpdate('priority', $event)">
+            @for (p of priorities; track p) {
+              <option [value]="p" [selected]="t.priority === p">{{ humanize(p) }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="sf-field">
+          <span>Assigned to @if (updating() === 'assignedTo') { <em class="saving">Saving…</em> }</span>
+          <select class="sf-input" [disabled]="!!updating()" (change)="quickUpdate('assignedTo', $event)">
+            <option value="" [selected]="!t.assignedTo">Unassigned</option>
+            @for (u of userList(); track u.userId) {
+              <option [value]="u.userId" [selected]="t.assignedTo === u.userId">{{ u.name || u.email }}</option>
+            }
+            @if (t.assignedTo && !isKnownUser(t.assignedTo)) {
+              <option [value]="t.assignedTo" selected>{{ t.assignedTo }}</option>
+            }
+          </select>
+        </label>
+
+        <dl class="meta">
+          <dt>Customer</dt>
+          <dd>
+            @if (t.customerId) {
+              <a [routerLink]="['/customers', t.customerId]">{{ customer()?.name || t.customerId }}</a>
+            } @else {
+              —
+            }
+          </dd>
+          <dt>Created by</dt>
+          <dd>{{ userName(t.createdBy) }}</dd>
+          <dt>Created</dt>
+          <dd>{{ formatDateTime(t.createdAt) }}</dd>
+          <dt>Last updated</dt>
+          <dd>{{ formatDateTime(t.updatedAt) }}</dd>
+        </dl>
+      </section>
+    </aside>
+  </div>
+
+  @if (confirmingDelete()) {
+    <div class="sf-backdrop" (click)="closeDeleteDialog()">
+      <div class="sf-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
+        <h2 id="delete-title">Delete this ticket?</h2>
+        <p>“{{ t.title }}” will be permanently deleted. This can't be undone.</p>
+        @if (deleteError()) {
+          <p class="sf-alert">{{ deleteError() }}</p>
+        }
+        <div class="sf-actions">
+          <button type="button" class="sf-btn" [disabled]="deleting()" (click)="closeDeleteDialog()" sfAutofocus>Cancel</button>
+          <button type="button" class="sf-btn danger-solid" [disabled]="deleting()" (click)="deleteTicket()">
+            {{ deleting() ? 'Deleting…' : 'Delete ticket' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}

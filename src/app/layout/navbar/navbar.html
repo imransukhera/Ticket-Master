@@ -1,0 +1,17 @@
+<header class="navbar">
+  <button type="button" class="menu" aria-label="Menu" aria-controls="sf-sidebar" [attr.aria-expanded]="menuOpen()" (click)="menuToggle.emit()">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
+  </button>
+
+  <span class="title">SupportFlow</span>
+
+  <div class="user">
+    @if (auth.userEmail(); as email) {
+      <span class="avatar" aria-hidden="true">{{ email.charAt(0).toUpperCase() }}</span>
+      <span class="email" [title]="email">{{ email }}</span>
+    }
+    <button type="button" class="signout" (click)="auth.logout()">Sign out</button>
+  </div>
+</header>

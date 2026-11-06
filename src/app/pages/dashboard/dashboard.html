@@ -1,0 +1,171 @@
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="muted">Overview of your support activity.</p>
+  </div>
+  @if (!loading()) {
+    <button type="button" class="sf-btn" (click)="load()">Refresh</button>
+  }
+</div>
+
+@if (loading()) {
+  <section class="cards" aria-busy="true" aria-label="Loading dashboard">
+    @for (_ of skeletonCards; track $index) {
+      <div class="card metric skeleton"></div>
+    }
+  </section>
+  <div class="grid">
+    <div class="panel wide skeleton tall"></div>
+    <div class="panel skeleton tall"></div>
+  </div>
+} @else if (error()) {
+  <div class="state error" role="alert">
+    <h2>Couldn't load the dashboard</h2>
+    <p>{{ error() }}</p>
+    @if (isRetryable(errorKind())) {
+      <div class="actions">
+        <button type="button" class="sf-btn primary" (click)="load()">Try again</button>
+      </div>
+    }
+  </div>
+} @else if (data(); as d) {
+  <!-- Metric cards -->
+  <section class="cards">
+    @for (card of cards(); track card.label) {
+      <div class="card metric" [class]="card.tone">
+        <span class="metric-label">{{ card.label }}</span>
+        <span class="metric-value">{{ card.value.toLocaleString() }}</span>
+      </div>
+    }
+  </section>
+
+  <div class="grid">
+    <!-- Recent tickets -->
+    <section class="panel wide">
+      <h2>Recent Tickets</h2>
+      @if (d.recentTickets.length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ticket</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th class="hide-sm">Assigned to</th>
+                <th class="hide-sm">Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of d.recentTickets; track t.ticketId) {
+                <tr>
+                  <td>
+                    <a class="ticket-title" [routerLink]="['/tickets', t.ticketId]">{{ t.title }}</a>
+                    <div class="ticket-id">{{ t.ticketId }}</div>
+                  </td>
+                  <td><span class="sf-pill" [class]="toneClass(t.status)">{{ humanize(t.status) }}</span></td>
+                  <td><span class="sf-pill" [class]="toneClass(t.priority)">{{ humanize(t.priority) }}</span></td>
+                  <td class="hide-sm">
+                    @if (assigneeName(t.assignedTo); as name) {
+                      {{ name }}
+                    } @else {
+                      <span class="muted">Unassigned</span>
+                    }
+                  </td>
+                  <td class="hide-sm nowrap">{{ formatDate(t.createdAt) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="empty">No recent tickets.</p>
+      }
+    </section>
+
+    <!-- Tickets by status -->
+    <section class="panel">
+      <h2>Tickets by Status</h2>
+      @if (d.charts.ticketsByStatus.length) {
+        <ul class="bars">
+          @for (p of d.charts.ticketsByStatus; track p.status) {
+            <li [class]="toneClass(p.status)">
+              <div class="bar-head">
+                <span>{{ humanize(p.status) }}</span>
+                <strong>{{ p.count }}</strong>
+              </div>
+              <div class="track"><div class="fill" [style.width.%]="percent(p.count, maxStatus())"></div></div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty">No status data yet.</p>
+      }
+    </section>
+
+    <!-- Tickets by priority -->
+    <section class="panel">
+      <h2>Tickets by Priority</h2>
+      @if (d.charts.ticketsByPriority.length) {
+        <ul class="bars">
+          @for (p of d.charts.ticketsByPriority; track p.priority) {
+            <li [class]="toneClass(p.priority)">
+              <div class="bar-head">
+                <span>{{ humanize(p.priority) }}</span>
+                <strong>{{ p.count }}</strong>
+              </div>
+              <div class="track"><div class="fill" [style.width.%]="percent(p.count, maxPriority())"></div></div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty">No priority data yet.</p>
+      }
+    </section>
+
+    <!-- 7-day trend -->
+    <section class="panel">
+      <h2>7-Day Ticket Trend</h2>
+      @if (d.ticketTrend.length) {
+        <p class="muted small">{{ trendTotal() }} tickets in this period</p>
+        <div class="columns" role="list">
+          @for (p of d.ticketTrend; track p.date) {
+            <div class="column" role="listitem" [attr.aria-label]="formatDay(p.date) + ': ' + p.count">
+              <span class="column-value">{{ p.count }}</span>
+              <div class="column-track">
+                <div class="column-fill" [style.height.%]="percent(p.count, maxTrend())"></div>
+              </div>
+              <span class="column-label">{{ formatDay(p.date) }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="empty">No trend data yet.</p>
+      }
+    </section>
+
+    <!-- Agent workload -->
+    <section class="panel">
+      <h2>Agent Workload</h2>
+      @if (d.agentWorkload.length) {
+        <ul class="bars">
+          @for (a of d.agentWorkload; track a.userId) {
+            <li>
+              <div class="bar-head">
+                <span class="agent" [title]="a.email">
+                  {{ a.name || a.email }}
+                  @if (a.status.toLowerCase() !== 'active') {
+                    <span class="sf-pill tone-closed">{{ humanize(a.status) }}</span>
+                  }
+                </span>
+                <strong>{{ a.assignedTickets }}</strong>
+              </div>
+              <div class="track"><div class="fill" [style.width.%]="percent(a.assignedTickets, maxWorkload())"></div></div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty">No agents found.</p>
+      }
+    </section>
+  </div>
+}

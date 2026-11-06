@@ -1,0 +1,121 @@
+.loading { height: 380px; }
+
+.center { justify-content: center; }
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.who-text {
+  min-width: 0;
+  h1 { overflow-wrap: anywhere; }
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--sf-primary-soft);
+  color: var(--sf-primary);
+  font-weight: 700;
+}
+
+.you {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sf-bg);
+  color: var(--sf-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+
+  .sf-field { margin-bottom: 14px; }
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+
+  h2 { margin: 0; font-size: 1rem; }
+  .sf-btn { padding: 5px 12px; }
+}
+
+.details {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px 16px;
+  margin: 0;
+  font-size: 0.9rem;
+
+  dt { color: var(--sf-muted); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  a { color: var(--sf-primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+.note {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+
+  &.ok { background: #e7f6ef; color: #0d7a55; }
+  &.warn { background: #fff6e5; color: #8a5300; }
+}
+
+.block { height: 140px; }
+
+.empty {
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+  color: var(--sf-muted);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

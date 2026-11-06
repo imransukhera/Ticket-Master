@@ -1,0 +1,31 @@
+.form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 820px;
+  padding: 24px;
+
+  > .sf-alert,
+  .full {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+}
+
+.loading {
+  height: 360px;
+  max-width: 820px;
+}
+
+.req {
+  color: var(--sf-critical);
+  font-style: normal;
+}
+
+.center { justify-content: center; }
+
+small a { color: var(--sf-primary); }

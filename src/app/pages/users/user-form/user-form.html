@@ -1,0 +1,52 @@
+<a class="sf-back" routerLink="/users">← Back to users</a>
+
+<div class="sf-page-head">
+  <div>
+    <h1>Invite user</h1>
+    <p>Add a teammate as an admin or agent.</p>
+  </div>
+</div>
+
+<form class="sf-panel form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  @if (saveError()) {
+    <p class="sf-alert" [class.forbidden]="forbidden()" role="alert">{{ saveError() }}</p>
+  }
+
+  <label class="sf-field">
+    <span>Name <em class="req" aria-hidden="true">*</em></span>
+    <input class="sf-input" formControlName="name" maxlength="120" autocomplete="off" placeholder="e.g. Sam Taylor" />
+    @if (invalid('name')) {
+      <small class="sf-error-text">Enter a name.</small>
+    }
+  </label>
+
+  <label class="sf-field">
+    <span>Email <em class="req" aria-hidden="true">*</em></span>
+    <input class="sf-input" type="email" inputmode="email" formControlName="email" maxlength="254" autocomplete="off" placeholder="sam@yourcompany.com" />
+    @if (invalid('email')) {
+      <small class="sf-error-text">
+        {{ form.controls.email.hasError('required') ? 'Enter an email address.' : 'Enter a valid email address, like sam@yourcompany.com.' }}
+      </small>
+    }
+  </label>
+
+  <fieldset class="roles">
+    <legend>Role</legend>
+    @for (r of roles; track r) {
+      <label class="role" [class.selected]="form.controls.role.value === r">
+        <input type="radio" formControlName="role" [value]="r" />
+        <span>
+          <strong>{{ humanize(r) }}</strong>
+          <small>{{ roleHelp[r] }}</small>
+        </span>
+      </label>
+    }
+  </fieldset>
+
+  <div class="sf-actions">
+    <a class="sf-btn" routerLink="/users">Cancel</a>
+    <button type="submit" class="sf-btn primary" [disabled]="saving() || form.invalid">
+      {{ saving() ? 'Inviting…' : 'Invite user' }}
+    </button>
+  </div>
+</form>

@@ -1,0 +1,120 @@
+<a class="sf-back" routerLink="/customers">← Back to customers</a>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true" aria-label="Loading customer"></div>
+} @else if (error()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ errorKind() === 'notFound' ? 'Customer not found' : errorKind() === 'forbidden' ? 'No access' : "Couldn't load the customer" }}</h2>
+    <p>{{ error() }}</p>
+    <div class="sf-actions center">
+      <a class="sf-btn" routerLink="/customers">Back to customers</a>
+      @if (isRetryable(errorKind())) {
+        <button type="button" class="sf-btn primary" (click)="loadCustomer()">Try again</button>
+      }
+    </div>
+  </div>
+} @else if (customer(); as c) {
+  <div class="sf-page-head">
+    <div class="who">
+      <span class="avatar" aria-hidden="true">{{ initials(c.name) }}</span>
+      <div class="who-text">
+        <h1>{{ c.name }}</h1>
+        <p>{{ c.email }}</p>
+      </div>
+    </div>
+    <div class="sf-actions">
+      <a class="sf-btn" [routerLink]="['/customers', c.customerId, 'edit']">Edit</a>
+      <button type="button" class="sf-btn danger" (click)="confirmingDelete.set(true)">Delete</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <section class="sf-panel">
+      <h2>Details</h2>
+      <dl class="details">
+        <dt>Name</dt>
+        <dd>{{ c.name }}</dd>
+        <dt>Email</dt>
+        <dd><a [href]="'mailto:' + c.email">{{ c.email }}</a></dd>
+        <dt>Phone</dt>
+        <dd>
+          @if (c.phone) {
+            <a [href]="'tel:' + c.phone">{{ c.phone }}</a>
+          } @else {
+            <span class="sf-muted">Not provided</span>
+          }
+        </dd>
+        <dt>Customer ID</dt>
+        <dd class="mono">{{ c.customerId }}</dd>
+        <dt>Created</dt>
+        <dd>{{ formatDateTime(c.createdAt) }}</dd>
+        <dt>Last updated</dt>
+        <dd>{{ formatDateTime(c.updatedAt) }}</dd>
+      </dl>
+    </section>
+
+    <section class="sf-panel">
+      <h2>History</h2>
+      @if (auditLoading()) {
+        <div class="sf-skeleton block"></div>
+      } @else if (auditError()) {
+        <p class="sf-alert">
+          {{ auditError() }}
+          <button type="button" class="link" (click)="loadAudit()">Retry</button>
+        </p>
+      } @else if (!audit().length) {
+        <p class="empty">No history yet.</p>
+      } @else {
+        <ol class="timeline">
+          @for (a of sortedAudit(); track a.auditId || $index) {
+            <li [class]="'ev-' + eventKind(a.action)">
+              <div class="ev-head">
+                <strong>{{ eventLabel(a.action) }}</strong>
+                <span class="sf-muted when">{{ formatDateTime(a.createdAt) }}</span>
+              </div>
+              @if (a.performedBy) {
+                <div class="sf-muted by">by {{ userName(a.performedBy) }}</div>
+              }
+              @if (a.changes.length) {
+                <dl class="changes">
+                  @for (ch of a.changes; track ch.field) {
+                    <dt>{{ humanize(ch.field) }}</dt>
+                    <dd>
+                      @if (ch.oldValue !== undefined && ch.newValue !== undefined) {
+                        <span class="old">{{ formatValue(ch.oldValue) }}</span>
+                        <span class="arrow" aria-label="changed to">→</span>
+                        <span class="new">{{ formatValue(ch.newValue) }}</span>
+                      } @else if (ch.newValue !== undefined) {
+                        <span class="new">{{ formatValue(ch.newValue) }}</span>
+                      } @else {
+                        <span class="old">{{ formatValue(ch.oldValue) }}</span>
+                      }
+                    </dd>
+                  }
+                </dl>
+              }
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  </div>
+
+  @if (confirmingDelete()) {
+    <div class="sf-backdrop" (click)="closeDeleteDialog()">
+      <div class="sf-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-title" (click)="$event.stopPropagation()">
+        <h2 id="delete-title">Delete this customer?</h2>
+        <p>“{{ c.name }}” will be permanently deleted. This can't be undone.</p>
+        @if (deleteError()) {
+          <p class="sf-alert">{{ deleteError() }}</p>
+        }
+        <div class="sf-actions">
+          <button type="button" class="sf-btn" [disabled]="deleting()" (click)="closeDeleteDialog()" sfAutofocus>Cancel</button>
+          <button type="button" class="sf-btn danger-solid" [disabled]="deleting()" (click)="deleteCustomer()">
+            {{ deleting() ? 'Deleting…' : 'Delete customer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}

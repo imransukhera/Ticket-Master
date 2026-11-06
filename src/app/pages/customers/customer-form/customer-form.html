@@ -1,0 +1,64 @@
+<a class="sf-back" [routerLink]="isEdit ? ['/customers', customerId] : ['/customers']">
+  ← {{ isEdit ? 'Back to customer' : 'Back to customers' }}
+</a>
+
+<div class="sf-page-head">
+  <div>
+    <h1>{{ isEdit ? 'Edit customer' : 'New customer' }}</h1>
+    <p>{{ isEdit ? customerId : 'Add someone you support.' }}</p>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="sf-skeleton loading" aria-busy="true"></div>
+} @else if (loadError()) {
+  <div class="sf-state error" role="alert">
+    <h2>{{ loadErrorKind() === 'notFound' ? 'Customer not found' : "Couldn't load the customer" }}</h2>
+    <p>{{ loadError() }}</p>
+    <div class="sf-actions center">
+      <a class="sf-btn" routerLink="/customers">Back to customers</a>
+      @if (isRetryable(loadErrorKind())) {
+        <button type="button" class="sf-btn primary" (click)="loadCustomer()">Try again</button>
+      }
+    </div>
+  </div>
+} @else {
+  <form class="sf-panel form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (saveError()) {
+      <p class="sf-alert" role="alert">{{ saveError() }}</p>
+    }
+
+    <label class="sf-field full">
+      <span>Name <em class="req" aria-hidden="true">*</em></span>
+      <input class="sf-input" formControlName="name" maxlength="120" autocomplete="name" placeholder="e.g. Jane Citizen or Acme Pty Ltd" />
+      @if (invalid('name')) {
+        <small class="sf-error-text">Enter a name.</small>
+      }
+    </label>
+
+    <label class="sf-field">
+      <span>Email <em class="req" aria-hidden="true">*</em></span>
+      <input class="sf-input" type="email" inputmode="email" formControlName="email" maxlength="254" autocomplete="email" placeholder="name@example.com" />
+      @if (invalid('email')) {
+        <small class="sf-error-text">
+          {{ form.controls.email.hasError('required') ? 'Enter an email address.' : 'Enter a valid email address, like name@example.com.' }}
+        </small>
+      }
+    </label>
+
+    <label class="sf-field">
+      <span>Phone <em class="optional">optional</em></span>
+      <input class="sf-input" type="tel" formControlName="phone" autocomplete="tel" placeholder="+61 400 000 000" />
+      @if (invalid('phone')) {
+        <small class="sf-error-text">Enter a valid phone number (at least 6 digits; +, spaces, - and brackets are fine).</small>
+      }
+    </label>
+
+    <div class="sf-actions full">
+      <a class="sf-btn" [routerLink]="isEdit ? ['/customers', customerId] : ['/customers']">Cancel</a>
+      <button type="submit" class="sf-btn primary" [disabled]="saving() || form.invalid || (isEdit && form.pristine)">
+        {{ saving() ? 'Saving…' : isEdit ? 'Save changes' : 'Create customer' }}
+      </button>
+    </div>
+  </form>
+}
