@@ -10,6 +10,9 @@ export const environment = {
     // Must exactly match the callback / sign-out URLs configured on the Cognito app client.
     redirectUri: 'http://localhost:4200',
     logoutUri: 'http://localhost:4200',
+    // Set to true once logoutUri is in the app client's "Allowed sign-out URLs";
+    // sign-out then returns to SupportFlow's login page instead of Cognito's sign-in page.
+    useSignOutUrl: false,
     scopes: 'openid email',
   },
 };

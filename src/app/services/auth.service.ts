@@ -64,27 +64,7 @@ export class AuthService {
   /** Redirects the browser to the Cognito Hosted UI sign-in page. */
   async login(): Promise<void> {
     if (!this.isBrowser) return;
-
-    const verifier = randomString(64);
-    const state = randomString(32);
-    const challenge = base64Url(
-      new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))),
-    );
-
-    sessionStorage.setItem(VERIFIER_KEY, verifier);
-    sessionStorage.setItem(STATE_KEY, state);
-
-    const params = new HttpParams({
-      fromObject: {
-        response_type: 'code',
-        client_id: this.cfg.clientId,
-        redirect_uri: this.cfg.redirectUri,
-        scope: this.cfg.scopes,
-        state,
-        code_challenge_method: 'S256',
-        code_challenge: challenge,
-      },
-    });
+    const params = await this.newAuthorizeParams();
     window.location.assign(`${this.cfg.domain}/oauth2/authorize?${params.toString()}`);
   }
 
@@ -125,16 +105,54 @@ export class AuthService {
     });
   }
 
-  /** Clears local tokens and signs out of the Cognito Hosted UI session. */
-  logout(): void {
+  /**
+   * Clears local tokens and ends the Cognito Hosted UI session, so the next sign-in asks for
+   * credentials again instead of silently reusing the old session.
+   *
+   * - useSignOutUrl = true: Cognito returns to `logoutUri` (SupportFlow's login page). Requires
+   *   that URL in the app client's "Allowed sign-out URLs", otherwise Cognito shows "Invalid request".
+   * - useSignOutUrl = false: Cognito goes straight to its sign-in page and, after signing in,
+   *   back to the app. Only needs the callback URL, which is already registered.
+   */
+  async logout(): Promise<void> {
     this.clearSession();
     this.clearReturnUrl();
     if (!this.isBrowser) return;
 
-    const params = new HttpParams({
-      fromObject: { client_id: this.cfg.clientId, logout_uri: this.cfg.logoutUri },
-    });
+    if (this.cfg.useSignOutUrl) {
+      const params = new HttpParams({
+        fromObject: { client_id: this.cfg.clientId, logout_uri: this.cfg.logoutUri },
+      });
+      window.location.assign(`${this.cfg.domain}/logout?${params.toString()}`);
+      return;
+    }
+
+    const params = await this.newAuthorizeParams();
     window.location.assign(`${this.cfg.domain}/logout?${params.toString()}`);
+  }
+
+  /** Fresh PKCE verifier + state (stored for the callback) and the matching authorize parameters. */
+  private async newAuthorizeParams(): Promise<HttpParams> {
+    const verifier = randomString(64);
+    const state = randomString(32);
+    const challenge = base64Url(
+      new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))),
+    );
+
+    sessionStorage.setItem(VERIFIER_KEY, verifier);
+    sessionStorage.setItem(STATE_KEY, state);
+
+    return new HttpParams({
+      fromObject: {
+        response_type: 'code',
+        client_id: this.cfg.clientId,
+        redirect_uri: this.cfg.redirectUri,
+        scope: this.cfg.scopes,
+        state,
+        code_challenge_method: 'S256',
+        code_challenge: challenge,
+      },
+    });
   }
 
   /** Drops local tokens only (e.g. after the API rejects them), without leaving the app. */
